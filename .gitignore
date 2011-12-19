@@ -1,0 +1,10 @@
+.project
+.pydevproject
+.DS_Store
+*.pyc
+bin/
+lib/
+include/
+build/
+.Python
+local_settings.py
