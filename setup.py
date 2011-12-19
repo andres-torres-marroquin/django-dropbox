@@ -12,6 +12,8 @@ def get_packages():
 
     return packages
 
+requires = [r for r in open('requirements.txt').read().split('\n') if r]
+
 setup(name='django-dropbox',
     version=version,
     description='A Django App that contains a Django Storage which uses Dropbox.',
@@ -19,4 +21,5 @@ setup(name='django-dropbox',
     author_email='andres.torres.marroquin@gmail.com',
     url='https://github.com/andres-torres-marroquin/django-dropbox',
     packages=get_packages(),
+    install_requires=requires,
 )
