@@ -30,9 +30,9 @@ additionally you must need to set the next settings:
 
 if you don't have `DROPBOX_CONSUMER_KEY` or `DROPBOX_CONSUMER_SECRET` 
 you will need to create an Dropbox app at [Dropbox for Developers](https://www.dropbox.com/developers)
-then set `DROPBOX_CONSUMER_KEY` and `DROPBOX_CONSUMER_SECRET` settings in `settings.py`
-and run:
+then set `DROPBOX_CONSUMER_KEY` and `DROPBOX_CONSUMER_SECRET` settings in `settings.py`,
+after that run:
 
     $ python manage.py get_dropbox_token
 
-And follow up instructions, finally set the `DROPBOX_ACCESS_TOKEN` and `DROPBOX_ACCESS_TOKEN_SECRET` in `settings.py`
+And follow up on screen instructions, finally set the `DROPBOX_ACCESS_TOKEN` and `DROPBOX_ACCESS_TOKEN_SECRET` in `settings.py`
