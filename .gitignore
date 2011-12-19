@@ -2,6 +2,8 @@
 .pydevproject
 .DS_Store
 *.pyc
+django_dropbox.egg-info/
+dist/
 bin/
 lib/
 include/
