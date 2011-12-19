@@ -81,7 +81,7 @@ class DropboxStorage(Storage):
 
     def size(self, name):
         path = os.path.realpath(os.path.join(self.location, name))
-        return self.client.metadata("dropbox", path).data['bytes']
+        return self.client.metadata(path)['bytes']
 
     def url(self, name):
         if name.startswith(self.location):

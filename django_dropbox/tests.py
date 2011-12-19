@@ -73,3 +73,20 @@ class DropboxStorageTest(TestCase):
 
         self.storage.base_url = None
         self.assertRaises(ValueError, self.storage.url, 'test.file')
+
+    def test_file_size(self):
+        """
+        File storage returns a url to access a given file from the Web.
+        """
+        self.assertFalse(self.storage.exists('storage_test_size'))
+        f = self.storage.open('storage_test_size', 'w')
+        f.write('these are 18 bytes')
+        f.close()
+        self.assertTrue(self.storage.exists('storage_test_size'))
+
+        f = self.storage.open('storage_test_size', 'r')
+        self.assertEqual(f.size, 18)
+        f.close()
+
+        self.storage.delete('storage_test_size')
+        self.assertFalse(self.storage.exists('storage_test_size'))
