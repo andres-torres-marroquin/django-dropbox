@@ -16,8 +16,7 @@ from django.core.files.storage import Storage
 from django.utils.encoding import filepath_to_uri
 
 from .settings import (CONSUMER_KEY, CONSUMER_SECRET,
-                       ACCESS_TYPE, ACCESS_TOKEN, ACCESS_TOKEN_SECRET, CONFIG,
-                       CONTENT_SERVER, PORT, SERVER)
+                       ACCESS_TYPE, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
 
 class DropboxStorage(Storage):
     """
