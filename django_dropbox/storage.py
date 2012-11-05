@@ -134,5 +134,6 @@ class DropboxFile(File):
 
     def close(self):
         if self._is_dirty:
-            self._storage.client.put_file(self._name, self.file.getvalue())
+            #saving the file should preserve the original filename
+            self._storage.client.put_file(self._name, self.file.getvalue(), True)
         self.file.close()
