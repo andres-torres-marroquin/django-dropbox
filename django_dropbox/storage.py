@@ -1,4 +1,5 @@
 import errno
+import md5
 import os.path
 import re
 import urlparse
@@ -11,13 +12,27 @@ except ImportError:
 from dropbox.session import DropboxSession
 from dropbox.client import DropboxClient
 from dropbox.rest import ErrorResponse
+from django.core.cache import cache
 from django.core.files import File
 from django.core.files.storage import Storage
 from django.utils.encoding import filepath_to_uri
 
 from .settings import (CONSUMER_KEY, CONSUMER_SECRET,
-                       ACCESS_TYPE, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+                       ACCESS_TYPE, ACCESS_TOKEN, ACCESS_TOKEN_SECRET, DROPBOX_CACHE)
 
+def _cache_key(path):
+    """
+    Return cache key for this path.
+    """
+    return 'dropbox::storage::%s' % md5.new(path).hexdigest()
+    
+def _clear_cache(path):
+    """
+    Clear cache for this path.
+    """
+    if DROPBOX_CACHE and isinstance(DROPBOX_CACHE, int):
+        cache.delete(_cache_key(path))
+            
 class DropboxStorage(Storage):
     """
     A storage class providing access to resources in a Dropbox Public folder.
@@ -30,6 +45,19 @@ class DropboxStorage(Storage):
         self.account_info = self.client.account_info()
         self.location = location
         self.base_url = 'http://dl.dropbox.com/u/{uid}/'.format(**self.account_info)
+            
+    def _client_metadata(self, path):
+        """
+        Get client metadata from cache based on the DROPBOX_CACHE setting.
+        """
+        if DROPBOX_CACHE and isinstance(DROPBOX_CACHE, int):
+            cache_key = _cache_key(path)
+            meta = cache.get(cache_key, None)
+            if not meta:
+                meta = self.client.metadata(path)
+                cache.set(cache_key, meta, DROPBOX_CACHE)
+            return meta
+        return self.client.metadata(path)
 
     def _get_abs_path(self, name):
         return os.path.realpath(os.path.join(self.location, name))
@@ -44,21 +72,23 @@ class DropboxStorage(Storage):
         directory = os.path.dirname(name)
         if not self.exists(directory) and directory:
              self.client.file_create_folder(directory)
-        response = self.client.metadata(directory)
+        response = self._client_metadata(directory)
         if not response['is_dir']:
              raise IOError("%s exists and is not a directory." % directory)
         abs_name = os.path.realpath(os.path.join(self.location, name))
         self.client.put_file(abs_name, content)
+        _clear_cache(abs_name)
         return name
 
     def delete(self, name):
         name = self._get_abs_path(name)
         self.client.file_delete(name)
+        _clear_cache(name)
 
     def exists(self, name):
         name = self._get_abs_path(name)
         try:
-            metadata = self.client.metadata(name)
+            metadata = self._client_metadata(name)
             if metadata.get('is_deleted'):
                 return False
         except ErrorResponse as e:
@@ -69,7 +99,7 @@ class DropboxStorage(Storage):
 
     def listdir(self, path):
         path = self._get_abs_path(path)
-        response = self.client.metadata(path)
+        response = self._client_metadata(path)
         directories = []
         files = []
         for entry in response.get('contents', []):
@@ -81,7 +111,7 @@ class DropboxStorage(Storage):
 
     def size(self, name):
         path = os.path.realpath(os.path.join(self.location, name))
-        return self.client.metadata(path)['bytes']
+        return self._client_metadata(path)['bytes']
 
     def url(self, name):
         if name.startswith(self.location):
@@ -136,4 +166,5 @@ class DropboxFile(File):
         if self._is_dirty:
             #saving the file should preserve the original filename
             self._storage.client.put_file(self._name, self.file.getvalue(), True)
+            _clear_cache(self._name)
         self.file.close()
