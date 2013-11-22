@@ -1,8 +1,4 @@
-import errno
 import os.path
-import re
-import urlparse
-import urllib
 import itertools
 try:
     from cStringIO import StringIO
@@ -13,7 +9,6 @@ from dropbox.client import DropboxClient
 from dropbox.rest import ErrorResponse
 from django.core.files import File
 from django.core.files.storage import Storage
-from django.utils.encoding import filepath_to_uri
 
 from .settings import (CONSUMER_KEY, CONSUMER_SECRET,
                        ACCESS_TYPE, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
@@ -27,9 +22,7 @@ class DropboxStorage(Storage):
         session = DropboxSession(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TYPE, locale=None)
         session.set_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
         self.client = DropboxClient(session)
-        self.account_info = self.client.account_info()
         self.location = location
-        self.base_url = 'http://dl.dropbox.com/u/{uid}/'.format(**self.account_info)
 
     def _get_abs_path(self, name):
         return os.path.realpath(os.path.join(self.location, name))
@@ -64,7 +57,7 @@ class DropboxStorage(Storage):
         except ErrorResponse as e:
             if e.status == 404: # not found
                 return False
-            raise e 
+            raise e
         return True
 
     def listdir(self, path):
@@ -86,9 +79,8 @@ class DropboxStorage(Storage):
     def url(self, name):
         if name.startswith(self.location):
             name = name[len(self.location) + 1:]
-        if self.base_url is None:
-            raise ValueError("This file is not accessible via a URL.")
-        return urlparse.urljoin(self.base_url, filepath_to_uri(name))
+        path = self._get_abs_path(name)
+        return self.client.media(path)['url']
 
     def get_available_name(self, name):
         """

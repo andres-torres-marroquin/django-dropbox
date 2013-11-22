@@ -1,14 +1,16 @@
-#import os
 from django.core.files.base import ContentFile
 from django.test import TestCase
+
+from dropbox.rest import ErrorResponse
+
 from django_dropbox.storage import DropboxStorage
+
 
 class DropboxStorageTest(TestCase):
 
     def setUp(self):
         self.location = '/Public/testing'
         self.storage = DropboxStorage(location=self.location)
-        self.storage.base_url = '/test_media_url/'
 
     def test_file_access_options(self):
         """
@@ -42,8 +44,8 @@ class DropboxStorageTest(TestCase):
         self.assertFalse(self.storage.exists('storage_test_2'))
         self.assertFalse(self.storage.exists('storage_dir_1'))
 
-        f = self.storage.save('storage_test_1', ContentFile('custom content'))
-        f = self.storage.save('storage_test_2', ContentFile('custom content'))
+        self.storage.save('storage_test_1', ContentFile('custom content'))
+        self.storage.save('storage_test_2', ContentFile('custom content'))
         self.storage.client.file_create_folder(self.location + '/storage_dir_1')
 
         dirs, files = self.storage.listdir(self.location)
@@ -54,25 +56,17 @@ class DropboxStorageTest(TestCase):
         self.storage.delete('storage_test_1')
         self.storage.delete('storage_test_2')
         self.storage.delete('storage_dir_1')
-        
+
     def test_file_url(self):
         """
         File storage returns a url to access a given file from the Web.
         """
-        self.assertEqual(self.storage.url('test.file'),
-            '%s%s' % (self.storage.base_url, 'test.file'))
+        f = self.storage.save('test.file', ContentFile('custom content'))
+        self.assertTrue(f in self.storage.url(f))
 
-        # should encode special chars except ~!*()'
-        # like encodeURIComponent() JavaScript function do
-        self.assertEqual(self.storage.url(r"""~!*()'@#$%^&*abc`+=.file"""),
-            """/test_media_url/~!*()'%40%23%24%25%5E%26*abc%60%2B%3D.file""")
-
-        # should stanslate os path separator(s) to the url path separator
-        self.assertEqual(self.storage.url("""a/b\\c.file"""),
-            """/test_media_url/a/b/c.file""")
-
-        self.storage.base_url = None
-        self.assertRaises(ValueError, self.storage.url, 'test.file')
+        # non existing file
+        self.assertRaises(ErrorResponse, self.storage.url, 'foo.file')
+        self.storage.delete('test.file')
 
     def test_file_size(self):
         """
