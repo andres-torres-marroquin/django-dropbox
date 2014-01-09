@@ -11,12 +11,18 @@ except ImportError:
 from dropbox.session import DropboxSession
 from dropbox.client import DropboxClient
 from dropbox.rest import ErrorResponse
+from django.core.cache import cache
 from django.core.files import File
 from django.core.files.storage import Storage
 from django.utils.encoding import filepath_to_uri
 
-from .settings import (CONSUMER_KEY, CONSUMER_SECRET,
-                       ACCESS_TYPE, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+from .settings import (CONSUMER_KEY,
+                       CONSUMER_SECRET,
+                       ACCESS_TYPE,
+                       ACCESS_TOKEN,
+                       ACCESS_TOKEN_SECRET,
+                       CACHE_TIMEOUT)
+
 
 class DropboxStorage(Storage):
     """
@@ -64,7 +70,7 @@ class DropboxStorage(Storage):
         except ErrorResponse as e:
             if e.status == 404: # not found
                 return False
-            raise e 
+            raise e
         return True
 
     def listdir(self, path):
@@ -80,15 +86,24 @@ class DropboxStorage(Storage):
         return directories, files
 
     def size(self, name):
-        path = os.path.realpath(os.path.join(self.location, name))
-        return self.client.metadata(path)['bytes']
+        cache_key = 'django-dropbox-size:%s' % filepath_to_uri(name)
+        size = cache.get(cache_key)
+
+        if not size:
+            size = self.client.metadata(filepath_to_uri(name))['bytes']
+            cache.set(cache_key, size, CACHE_TIMEOUT)
+
+        return size
 
     def url(self, name):
-        if name.startswith(self.location):
-            name = name[len(self.location) + 1:]
-        if self.base_url is None:
-            raise ValueError("This file is not accessible via a URL.")
-        return urlparse.urljoin(self.base_url, filepath_to_uri(name))
+        cache_key = 'django-dropbox-url:%s' % filepath_to_uri(name)
+        url = cache.get(cache_key)
+
+        if not url:
+            url = self.client.share(filepath_to_uri(name))['url']
+            cache.set(cache_key, url, CACHE_TIMEOUT)
+
+        return url
 
     def get_available_name(self, name):
         """

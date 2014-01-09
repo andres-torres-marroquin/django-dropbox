@@ -4,6 +4,7 @@
 *.pyc
 django_dropbox.egg-info/
 dist/
+venv/
 bin/
 lib/
 include/
