@@ -100,7 +100,7 @@ class DropboxStorage(Storage):
         url = cache.get(cache_key)
 
         if not url:
-            url = self.client.share(filepath_to_uri(name))['url']
+            url = self.client.share(filepath_to_uri(name), short_url=False)['url'] + '?dl=1'
             cache.set(cache_key, url, CACHE_TIMEOUT)
 
         return url

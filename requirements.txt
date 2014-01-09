@@ -1,1 +1,1 @@
-dropbox==1.2
+dropbox>=2.0.0

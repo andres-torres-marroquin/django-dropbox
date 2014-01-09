@@ -12,7 +12,7 @@ def get_packages():
 
     return packages
 
-requires = ['dropbox==1.2']
+requires = ['dropbox>=2.0.0']
 
 setup(name='django-dropbox',
     version=version,
