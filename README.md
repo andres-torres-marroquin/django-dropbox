@@ -21,6 +21,10 @@ INSTALLED_APPS on settings.py
         ...
     )
 
+set DEFAULT_FILE_STORAGE in settings.py :
+
+    DEFAULT_FILE_STORAGE = 'django_dropbox.storage.DropboxStorage'
+
 additionally you must need to set the next settings:
 
     DROPBOX_CONSUMER_KEY = 'xxx'
@@ -36,3 +40,4 @@ after that run:
     $ python manage.py get_dropbox_token
 
 And follow up on screen instructions, finally set the `DROPBOX_ACCESS_TOKEN` and `DROPBOX_ACCESS_TOKEN_SECRET` in `settings.py`
+
