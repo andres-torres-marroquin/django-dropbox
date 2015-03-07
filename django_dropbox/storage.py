@@ -1,13 +1,22 @@
 import errno
 import os.path
 import re
-import urlparse
-import urllib
+
+try:
+    import urlparse
+except ImportError:
+    from urllib.parse import urlparse
+
+
 import itertools
+
 try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+
 from dropbox.session import DropboxSession
 from dropbox.client import DropboxClient
 from dropbox.rest import ErrorResponse
@@ -122,6 +131,7 @@ class DropboxStorage(Storage):
             name = os.path.join(dir_name, "%s_%s%s" % (file_root, count.next(), file_ext))
 
         return name
+
 
 class DropboxFile(File):
     def __init__(self, name, storage, mode):
