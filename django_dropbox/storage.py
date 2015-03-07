@@ -1,22 +1,15 @@
 import errno
 import os.path
 import re
-
 try:
     import urlparse
 except ImportError:
     from urllib.parse import urlparse
-
-
 import itertools
-
 try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
-except ImportError:
     from io import StringIO
-
+except ImportError:
+    from cStringIO import StringIO
 from dropbox.session import DropboxSession
 from dropbox.client import DropboxClient
 from dropbox.rest import ErrorResponse
