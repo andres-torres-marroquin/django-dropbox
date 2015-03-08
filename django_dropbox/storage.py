@@ -1,15 +1,7 @@
-import errno
+from six import BytesIO, advance_iterator
 import os.path
-import re
-try:
-    import urlparse
-except ImportError:
-    from urllib.parse import urlparse
 import itertools
-try:
-    from io import StringIO
-except ImportError:
-    from cStringIO import StringIO
+
 from dropbox.session import DropboxSession
 from dropbox.client import DropboxClient
 from dropbox.rest import ErrorResponse
@@ -121,7 +113,7 @@ class DropboxStorage(Storage):
         count = itertools.count(1)
         while self.exists(name):
             # file_ext includes the dot.
-            name = os.path.join(dir_name, "%s_%s%s" % (file_root, count.next(), file_ext))
+            name = os.path.join(dir_name, "%s_%s%s" % (file_root, advance_iterator(count), file_ext))
 
         return name
 
@@ -131,7 +123,7 @@ class DropboxFile(File):
         self._storage = storage
         self._mode = mode
         self._is_dirty = False
-        self.file = StringIO()
+        self.file = BytesIO()
         self.start_range = 0
         self._name = name
 
@@ -147,7 +139,7 @@ class DropboxFile(File):
     def write(self, content):
         if 'w' not in self._mode:
             raise AttributeError("File was opened for read-only access.")
-        self.file = StringIO(content)
+        self.file = BytesIO(content)
         self._is_dirty = True
 
     def close(self):
