@@ -1,13 +1,7 @@
-import errno
+from six import BytesIO, advance_iterator
 import os.path
-import re
-import urlparse
-import urllib
 import itertools
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
+
 from dropbox.session import DropboxSession
 from dropbox.client import DropboxClient
 from dropbox.rest import ErrorResponse
@@ -49,10 +43,10 @@ class DropboxStorage(Storage):
         name = self._get_abs_path(name)
         directory = os.path.dirname(name)
         if not self.exists(directory) and directory:
-             self.client.file_create_folder(directory)
+            self.client.file_create_folder(directory)
         response = self.client.metadata(directory)
         if not response['is_dir']:
-             raise IOError("%s exists and is not a directory." % directory)
+            raise IOError("%s exists and is not a directory." % directory)
         abs_name = os.path.realpath(os.path.join(self.location, name))
         self.client.put_file(abs_name, content)
         return name
@@ -68,7 +62,7 @@ class DropboxStorage(Storage):
             if metadata.get('is_deleted'):
                 return False
         except ErrorResponse as e:
-            if e.status == 404: # not found
+            if e.status == 404:  # not found
                 return False
             raise e
         return True
@@ -100,7 +94,7 @@ class DropboxStorage(Storage):
         url = cache.get(cache_key)
 
         if not url:
-            url = self.client.share(filepath_to_uri(name), short_url=False)['url'] + '?dl=1'
+            url = self.client.share(filepath_to_uri(name), short_url=False)['url'].replace('?dl=0', '?dl=1')
             cache.set(cache_key, url, CACHE_TIMEOUT)
 
         return url
@@ -119,16 +113,17 @@ class DropboxStorage(Storage):
         count = itertools.count(1)
         while self.exists(name):
             # file_ext includes the dot.
-            name = os.path.join(dir_name, "%s_%s%s" % (file_root, count.next(), file_ext))
+            name = os.path.join(dir_name, "%s_%s%s" % (file_root, advance_iterator(count), file_ext))
 
         return name
+
 
 class DropboxFile(File):
     def __init__(self, name, storage, mode):
         self._storage = storage
         self._mode = mode
         self._is_dirty = False
-        self.file = StringIO()
+        self.file = BytesIO()
         self.start_range = 0
         self._name = name
 
@@ -144,7 +139,7 @@ class DropboxFile(File):
     def write(self, content):
         if 'w' not in self._mode:
             raise AttributeError("File was opened for read-only access.")
-        self.file = StringIO(content)
+        self.file = BytesIO(content)
         self._is_dirty = True
 
     def close(self):
