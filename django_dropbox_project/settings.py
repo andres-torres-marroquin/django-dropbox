@@ -149,4 +149,5 @@ LOGGING = {
 try:
     from local_settings import *
 except ImportError:
-    raise ImportError('You must add local_settings.py file')
+    pass
+    # raise ImportError('You must add local_settings.py file')

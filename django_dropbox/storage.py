@@ -1,27 +1,18 @@
-import errno
 import os.path
 import re
-import urlparse
-import urllib
 import itertools
 try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
-from dropbox.session import DropboxSession
-from dropbox.client import DropboxClient
-from dropbox.rest import ErrorResponse
+from dropbox import Dropbox
+from dropbox.exceptions import ApiError
+from dropbox.files import FolderMetadata, FileMetadata
 from django.core.cache import cache
 from django.core.files import File
 from django.core.files.storage import Storage
-from django.utils.encoding import filepath_to_uri
 
-from .settings import (CONSUMER_KEY,
-                       CONSUMER_SECRET,
-                       ACCESS_TYPE,
-                       ACCESS_TOKEN,
-                       ACCESS_TOKEN_SECRET,
-                       CACHE_TIMEOUT)
+from .settings import ACCESS_TOKEN, CACHE_TIMEOUT, SHARE_LINK_CACHE_TIMEOUT
 
 
 class DropboxStorage(Storage):
@@ -30,12 +21,10 @@ class DropboxStorage(Storage):
     """
 
     def __init__(self, location='/Public'):
-        session = DropboxSession(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TYPE, locale=None)
-        session.set_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
-        self.client = DropboxClient(session)
-        self.account_info = self.client.account_info()
+        self.client = Dropbox(ACCESS_TOKEN)
+        self.account_info = self.client.users_get_current_account()
         self.location = location
-        self.base_url = 'http://dl.dropbox.com/u/{uid}/'.format(**self.account_info)
+        self.base_url = 'https://dl.dropboxusercontent.com/'
 
     def _get_abs_path(self, name):
         return os.path.realpath(os.path.join(self.location, name))
@@ -49,59 +38,56 @@ class DropboxStorage(Storage):
         name = self._get_abs_path(name)
         directory = os.path.dirname(name)
         if not self.exists(directory) and directory:
-             self.client.file_create_folder(directory)
-        response = self.client.metadata(directory)
-        if not response['is_dir']:
-             raise IOError("%s exists and is not a directory." % directory)
+            self.client.files_create_folder(directory)
+        # response = self.client.files_get_metadata(directory)
+        # if not response['is_dir']:
+        #     raise IOError("%s exists and is not a directory." % directory)
         abs_name = os.path.realpath(os.path.join(self.location, name))
-        self.client.put_file(abs_name, content)
+        foo = self.client.files_upload(content.read(), abs_name)
         return name
 
     def delete(self, name):
         name = self._get_abs_path(name)
-        self.client.file_delete(name)
+        self.client.files_delete(name)
 
     def exists(self, name):
         name = self._get_abs_path(name)
         try:
-            metadata = self.client.metadata(name)
-            if metadata.get('is_deleted'):
-                return False
-        except ErrorResponse as e:
-            if e.status == 404: # not found
+            self.client.files_get_metadata(name)
+        except ApiError as e:
+            if e.error.is_path() and e.error.get_path().is_not_found():  # not found
                 return False
             raise e
         return True
 
     def listdir(self, path):
         path = self._get_abs_path(path)
-        response = self.client.metadata(path)
+        response = self.client.files_list_folder(path)
         directories = []
         files = []
-        for entry in response.get('contents', []):
-            if entry['is_dir']:
-                directories.append(os.path.basename(entry['path']))
-            else:
-                files.append(os.path.basename(entry['path']))
+        for entry in response.entries:
+            if type(entry) == FolderMetadata:
+                directories.append(os.path.basename(entry.path_display))
+            elif type(entry) == FileMetadata:
+                files.append(os.path.basename(entry.path_display))
         return directories, files
 
     def size(self, name):
-        cache_key = 'django-dropbox-size:%s' % filepath_to_uri(name)
+        cache_key = 'django-dropbox-size:%s' % name
         size = cache.get(cache_key)
 
         if not size:
-            size = self.client.metadata(filepath_to_uri(name))['bytes']
+            size = self.client.files_get_metadata(name).size
             cache.set(cache_key, size, CACHE_TIMEOUT)
-
         return size
 
     def url(self, name):
-        cache_key = 'django-dropbox-url:%s' % filepath_to_uri(name)
+        cache_key = 'django-dropbox-url:%s' % name
         url = cache.get(cache_key)
 
         if not url:
-            url = self.client.share(filepath_to_uri(name), short_url=False)['url'] + '?dl=1'
-            cache.set(cache_key, url, CACHE_TIMEOUT)
+            url = self.client.files_get_temporary_link(name).link
+            cache.set(cache_key, url, SHARE_LINK_CACHE_TIMEOUT)
 
         return url
 
@@ -123,6 +109,7 @@ class DropboxStorage(Storage):
 
         return name
 
+
 class DropboxFile(File):
     def __init__(self, name, storage, mode):
         self._storage = storage
@@ -139,7 +126,8 @@ class DropboxFile(File):
         return self._size
 
     def read(self, num_bytes=None):
-        return self._storage.client.get_file(self._name).read()
+        metadata, response = self._storage.client.files_download(self._name)
+        return response.content
 
     def write(self, content):
         if 'w' not in self._mode:
@@ -149,5 +137,5 @@ class DropboxFile(File):
 
     def close(self):
         if self._is_dirty:
-            self._storage.client.put_file(self._name, self.file.getvalue())
+            self._storage.client.files_upload(self.file.getvalue(), self._name)
         self.file.close()
