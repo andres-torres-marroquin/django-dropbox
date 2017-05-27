@@ -11,10 +11,12 @@ from dropbox.files import FolderMetadata, FileMetadata
 from django.core.cache import cache
 from django.core.files import File
 from django.core.files.storage import Storage
+from django.utils.deconstruct import deconstructible
 
 from .settings import ACCESS_TOKEN, CACHE_TIMEOUT, SHARE_LINK_CACHE_TIMEOUT
 
 
+@deconstructible
 class DropboxStorage(Storage):
     """
     A storage class providing access to resources in a Dropbox Public folder.
