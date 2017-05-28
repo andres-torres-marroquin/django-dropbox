@@ -1,5 +1,5 @@
 # django-dropbox
-> Version 0.0.1
+> Version 0.1.2
 
 # What
 
@@ -23,16 +23,31 @@ INSTALLED_APPS on settings.py
 
 additionally you must need to set the next settings:
 
-    DROPBOX_CONSUMER_KEY = 'xxx'
-    DROPBOX_CONSUMER_SECRET = 'xxx'
     DROPBOX_ACCESS_TOKEN = 'xxx'
-    DROPBOX_ACCESS_TOKEN_SECRET = 'xxx'
 
-if you don't have `DROPBOX_CONSUMER_KEY` or `DROPBOX_CONSUMER_SECRET` 
-you will need to create an Dropbox app at [Dropbox for Developers](https://www.dropbox.com/developers)
-then set `DROPBOX_CONSUMER_KEY` and `DROPBOX_CONSUMER_SECRET` settings in `settings.py`,
-after that run:
+if you don't have `DROPBOX_ACCESS_TOKEN` you can create one after creating a Dropbox app at [Dropbox for Developers](https://www.dropbox.com/developers).
+If you have your Dropbox `App key` and `App secret`, you can set `DROPBOX_CONSUMER_KEY` and `DROPBOX_CONSUMER_SECRET` settings in `settings.py`, then run:
 
     $ python manage.py get_dropbox_token
 
-And follow up on screen instructions, finally set the `DROPBOX_ACCESS_TOKEN` and `DROPBOX_ACCESS_TOKEN_SECRET` in `settings.py`
+And follow up on screen instructions, finally set the  and `DROPBOX_ACCESS_TOKEN_SECRET` in `settings.py`
+
+
+# Contributing
+When contributing, please follow these steps:
+
+* Clone the repo and make your changes.
+* Make sure your code has test cases written against it.
+* Make sure all the tests pass.
+* Lint your code with Flake8.
+* Add your name to the list of contributers.
+* Submit a Pull Request.
+
+## Tests
+
+Tests are written following Django best practices. You can run them all easily using the example django_project.
+
+```
+$ cd django_dropbox_project
+$ python manage.py test --settings=settings
+```
