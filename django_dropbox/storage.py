@@ -12,6 +12,7 @@ from django.core.cache import cache
 from django.core.files import File
 from django.core.files.storage import Storage
 from django.utils.deconstruct import deconstructible
+from django.utils.encoding import filepath_to_uri
 
 from .settings import ACCESS_TOKEN, CACHE_TIMEOUT, SHARE_LINK_CACHE_TIMEOUT
 
@@ -75,7 +76,7 @@ class DropboxStorage(Storage):
         return directories, files
 
     def size(self, name):
-        cache_key = 'django-dropbox-size:%s' % name
+        cache_key = 'django-dropbox-size:{}'.format(filepath_to_uri(name))
         size = cache.get(cache_key)
 
         if not size:
@@ -84,7 +85,7 @@ class DropboxStorage(Storage):
         return size
 
     def url(self, name):
-        cache_key = 'django-dropbox-url:%s' % name
+        cache_key = 'django-dropbox-size:{}'.format(filepath_to_uri(name))
         url = cache.get(cache_key)
 
         if not url:
