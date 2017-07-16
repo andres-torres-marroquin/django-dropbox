@@ -11,3 +11,6 @@ include/
 build/
 .Python
 local_settings.py
+.coverage
+coverage.xml
+

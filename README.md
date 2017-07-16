@@ -1,5 +1,5 @@
 # django-dropbox
-> Version 0.1.2
+> Version 0.1.1
 
 # What
 
@@ -50,4 +50,12 @@ Tests are written following Django best practices. You can run them all easily u
 ```
 $ cd django_dropbox_project
 $ python manage.py test --settings=settings
+```
+
+To check the unit tests coverage you can:
+```
+$ pip install coverage
+$ cd django_dropbox_project
+$ coverage run manage.py test --settings=settings
+$ coverage report -m
 ```
